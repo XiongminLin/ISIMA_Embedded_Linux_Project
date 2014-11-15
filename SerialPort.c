@@ -1,4 +1,8 @@
+/* Written by Xiongmin Lin <linxiongmin@gmail.com>, ISIMA, Clermont-Ferrand *
+ * (c) 2014. All rights reserved.                                           */
+
 #include "SerialPort.h"
+
 /* OpenPort function is used to open a srrial port                  */
 /* device is the name of the serial port, for example /dev/ttyUSB0  */
 int OpenPort(const char *device)

@@ -1,4 +1,6 @@
-/*
+/*                                                                           *
+* Written by Xiongmin Lin <linxiongmin@gmail.com>, ISIMA, Clermont-Ferrand   *
+* (c) 2014. All rights reserved.                                             *
 * raspberry.c is running in raspberry board(server), there are two threads   *
 * the main thread: receive message from server, such as ACK, frequency       * 
 * message and stop message.                                                  *
