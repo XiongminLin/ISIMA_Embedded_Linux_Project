@@ -1,8 +1,4 @@
-/* Written by Xiongmin Lin <linxiongmin@gmail.com>, ISIMA, Clermont-Ferrand *
- * (c) 2014. All rights reserved.                                           */
-
 #include "SerialPort.h"
-
 /* OpenPort function is used to open a srrial port                  */
 /* device is the name of the serial port, for example /dev/ttyUSB0  */
 int OpenPort(const char *device)
@@ -43,6 +39,16 @@ int OpenPort(const char *device)
 
   return fd;	
 }
+
+int OpenVirtualPort(const char *device)
+{
+   int fd;
+   fd = open(device, O_RDWR); // open device for read&write
+   if(fd==-1)
+     printf("Open port failed...\n");
+   return fd;
+}
+
 /*SendFrame is used to send frame, for example, send ACK, tempperature message or control message*/
 int SendFrame(int fd, char *frame, int size)
 {

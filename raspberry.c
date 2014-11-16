@@ -1,6 +1,4 @@
-/*                                                                           *
-* Written by Xiongmin Lin <linxiongmin@gmail.com>, ISIMA, Clermont-Ferrand   *
-* (c) 2014. All rights reserved.                                             *
+/*
 * raspberry.c is running in raspberry board(server), there are two threads   *
 * the main thread: receive message from server, such as ACK, frequency       * 
 * message and stop message.                                                  *
@@ -43,12 +41,13 @@ pthread_mutex_t fd_mutex;
 * the input frame should be something like "*01+21.501330150210/"        */
 int InsertToSQL(char *frame)
 {
-        char start[1];
-        char type[2];
-        char value[6];
-        char hour[4];
-        char date[6];
-        char end[1];
+        char start[2] = {'\0'};
+        char type[3]  = {'\0'};
+        char value[7] = {'\0'};
+        char hour[5]  = {'\0'};
+        char date[7]  = {'\0'};
+        char end[2]   = {'\0'};
+	printf("frame : %s\n", frame);
 
         memcpy(start, frame     , 1);
         memcpy(type,  frame + 1 , 2);
@@ -56,7 +55,10 @@ int InsertToSQL(char *frame)
         memcpy(hour,  frame + 9 , 4);
         memcpy(date,  frame + 13, 6);
         memcpy(end,   frame + 19, 1);
-
+	printf("type : %s\n", type);
+	printf("value: %s\n", value);
+	printf("hour : %s\n", hour);
+	printf("date : %s\n", date);
   	MYSQL      *conn;
   	//MYSQL_RES  *res;
   	MYSQL_ROW  row;
@@ -69,8 +71,10 @@ int InsertToSQL(char *frame)
   	int t, r;
 	char RxChar[21]="*01+21.501330150210/";
   	char InsertSQL[200]= {'\0'};
-  	sprintf(InsertSQL, "insert into temperature(start,type,value,hour,date,end) values('*','%s','%s','%s','%s','/')", type, value, hour, date);
-
+	printf("insert sql-1: %s\n", InsertSQL);
+  	sprintf(InsertSQL, "insert into temperature(start,type,value,hour,date,end) values('*','%s','%s','%s','%s','/')", 
+                type, value, hour, date);
+	printf("insert sql-2: %s\n", InsertSQL);
  
   	//link into mysql
   	if(!mysql_real_connect(conn, server, user, password, database, 0, NULL, 0))
@@ -219,7 +223,8 @@ int main()
   char freframe[11] = "*02000001/";
   char stopframe[9] = "*03STOP/"; 
 //  char *device = "/dev/ttyAMA0";
-  char *device = "/dev/ttyUSB0";
+//  char *device = "/dev/ttyUSB0";
+  char *device = "/dev/pts/5";
   pthread_mutex_init(&stop_mutex, NULL);
   pthread_mutex_init(&fre_mutex, NULL);
   pthread_mutex_init(&need_send_ack_mutex, NULL);
@@ -227,20 +232,17 @@ int main()
   pthread_mutex_init(&fd_mutex, NULL);
   FILE *file;
   int read_fre;
+  printf("trying to open serial port...\n");
   fd = OpenPort(device);
+//  fd = OpenVirtualPort(device);
   if(fd <= 0)
-   return -1;
-  pthread_create(&recvthread, NULL, (void *)&RecvThreadFun, NULL);
-  usleep(50000);
-  //read frequency stop info from file//
-  char * line = NULL;
-  size_t len = 0;
-  ssize_t read;
-  file = fopen("/home/etudiant/server/www/temperature.txt", "r");
- if (file == NULL)
   {
-    printf("open file error\n");
-    return -1;
+    printf("open serial port failed\n");
+  }
+  else
+  {
+    printf("open serial port success\n");
+
   }
   //char delayAscii[7];
 
@@ -250,21 +252,35 @@ int main()
 //           printf("Retrieved line of length %zu :\n", read);
 //           printf("%s", line);
 //       }
-  fre  = 1;
+  fre  = 0;
   stop = 0;
   needsendACK = 0;
   haverecvACK = 0;
 
+  pthread_create(&recvthread, NULL, (void *)&RecvThreadFun, NULL);
+  usleep(50000);
+
   while(1)
   {
     /*read frequency value and stop info from file */
-    printf("read frequency and stop info for file\n");
+    //read frequency stop info from file//
+    char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    file = fopen("/home/lin/server/www/temperature.txt", "r");
+    if (file == NULL)
+    {
+      printf("open file error\n");
+      return -1;
+    }
+//    printf("read frequency and stop info from file: /home/lin/server/www/temperature.txt\n");
     read = getline(&line, &len, file);
     read_fre = atol((const char *) line);
-    printf("fre: %d\n", fre);
+//    printf("fre: %d\n", fre);
     read = getline(&line, &len, file);
     stop = atol((const char *) line);
-    printf("stop: %d\n", stop);
+//    printf("stop: %d\n", stop);
+    fclose(file);
 
     /*if user wants to stop the sensor, server will send a stop-frame to sensor */
 
@@ -334,11 +350,10 @@ int main()
       show_state();
       pthread_mutex_unlock(&need_send_ack_mutex);
     }
-    usleep(500000);
+    usleep(100000);
 
   }
 
   pthread_join(recvthread, NULL);
-  fclose(file);
   return 0;
 }

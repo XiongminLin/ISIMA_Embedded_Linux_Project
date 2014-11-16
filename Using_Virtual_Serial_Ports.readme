@@ -1,0 +1,42 @@
+/* reference: http://www.xappsoftware.com/wordpress/2013/10/07/using-virtual-serial-ports-on-linux-ubuntu/ */
+
+Using Virtual Serial Ports on Linux (Ubuntu)
+
+A virtual serial port is a redirector without network software support which is usually used to create a pair of back-to-back virtual COM ports on the same computer. Two legacy applications can then communicate using virtual serial ports instead of conventional inter-process communication mechanisms such as named pipes.
+This type of software is capable of emulating all serial port functionality, including Baud rate, data bits, parity bits, stop bits, etc. Additionally, it allows the data flow to be controlled, emulating all signal lines (DTR/DSR/CTS/RTS/DCD/RI) and customizing pinout.
+Often I write software for embedded devices, and they have to exchange data with a PC. Since the devices often, if we don't want to say "always", aren't available during the development phase I have to simulate the connection in other ways. When I have to use UARTs to communicate, I use a tool which generates 2 virtual ports and then joins them back to back.
+
+The software I use on Linux is socat, it is a very complex software and it can do a lot of other things, maybe in another article I'll show other functionalities of socat.
+Socat Man Page: "Socat  is  a  command  line based utility that establishes two bidirectional byte streams and transfers data between them. Because the streams can be constructed from a large set of  different  types  of  data  sinks  and  sources (see address types), and because lots of address options may be applied to the streams, socat can be used for many different purposes."
+ 
+However let's try socat:
+Installation on Ubuntu
+To install socat on Ubuntu (I'm using 12.04) just run the following command:
+# sudo apt-get install socat
+ 
+Setting up two serial lines
+now on a terminal window run socat
+# socat -d -d PTY: PTY:
+The output should look like the following one:
+2013/09/20 14:07:10 socat[6871] N PTY is /dev/pts/5
+2013/09/20 14:07:10 socat[6871] N PTY is /dev/pts/6
+2013/09/20 14:07:10 socat[6871] N starting data transfer loop with FDs [3,3] and [5,5]
+ 
+Now you have two "serial" ports connected back to back
+Testing the ports
+open a new terminal and issue the following command
+# sudo cat /dev/pts/5
+
+open a new terminal and issue the following command
+# sudo echo "Hello World" > /dev/pts/6
+
+On the first terminal you should see the string "Hello World".
+ 
+
+/*you can open the virtual port just like a real serial port, but change the port name , add by linxiongmin@gmail.com*/
+
+for example:
+fd = open(“/dev/pts/6”, O_RDWR); // open device for read&write
+
+just remember keep running the command:
+# socat -d -d PTY: PTY:

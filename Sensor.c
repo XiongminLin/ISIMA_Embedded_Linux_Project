@@ -1,9 +1,7 @@
 /*
-* Written by Xiongmin Lin <linxiongmin@gmail.com>, ISIMA, Clermont-Ferrand *
-* (c) 2014. All rights reserved.                                           *
-* Sensor.c is running in temperature sensorm, there are two threads        *
-* the main thread: receive message from server, such as ACK, frequency     *
-* message and stop message. the SendThread: send message to the server.    */
+*Sensor.c is running in temperature sensorm, there are two threads      *
+*the main thread: receive message from server, such as ACK, frequency   *
+*message and stop message. the SendThread: send message to the server.  */
 
 
 #include <stdio.h>
@@ -140,7 +138,8 @@ int main()
   pthread_t sendthread;
   char recvframe[MAX_FRAME_SIZE] = "ABCDEFG";
 //  char *device = "/dev/ttyAMA0";
-  char *device = "/dev/ttyUSB0";
+//  char *device = "/dev/ttyUSB0";
+  char *device = "/dev/pts/2";
   fre  = 1;
   stop = 0;
   haverecvACK = 0;
