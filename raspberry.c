@@ -69,7 +69,7 @@ int InsertToSQL(char *frame)
   	conn = mysql_init(NULL);
   	//char *query = "insert into temperature(start,type,value,hour,date,end) values('*','01','+21.50','1330','150210','/')";
   	int t, r;
-	char RxChar[21]="*01+21.501330150210/";
+//	char RxChar[21]="*01+21.501330150210/";
   	char InsertSQL[200]= {'\0'};
 //	printf("insert sql-1: %s\n", InsertSQL);
   	sprintf(InsertSQL, "insert into temperature(start,type,value,hour,date,end) values('*','%s','%s','%s','%s','/')", 
@@ -94,7 +94,7 @@ int InsertToSQL(char *frame)
         }
         else
         {
-		printf("Write the data: %s into mysql successfully!\n", RxChar);
+		printf("Write the data: %s into mysql successfully!\n", frame);
         }
   	mysql_close(conn);
   	return t;
@@ -118,7 +118,7 @@ int AnalyseFrame(const char *frame)
 {
   if(frame[2] == '0')      //ACK
   {
-     printf("hi, recv ACK %s\n", frame);
+     //printf("hi, recv ACK %s\n", frame);
      return 0;
 
   }else if(frame[2] == '1') //temp data
@@ -166,7 +166,7 @@ void RecvThreadFun(void *ptr)
            show_state();
            pthread_mutex_unlock(&need_send_ack_mutex);
            InsertToSQL(recvframe);
-           //sleep(fre);
+//           sleep(fre);  /*if sleep too long, then sensor will not receive any frame*/
         }
         else if(datamode == 0)
         {

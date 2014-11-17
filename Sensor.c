@@ -30,9 +30,10 @@ void GetFrame(char *frame)
    struct tm * timeinfo;
    time (&rawtime);
    timeinfo = localtime ( &rawtime );
-   double temp = -10.50 + random()%30;
+   int temp1 = -10 + random()%31;
+   int temp2 = random()%100;
    sprintf(frame,"*01%s%02d.%02d%02d%02d%02d%02d%02d/",
-           (temp < 0 ? "":"+"), (int)temp,(int)((temp - (int)temp)*100),timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_mday, timeinfo->tm_mon, timeinfo->tm_year - 100);
+           (temp1 < 0 ? "-":"+"), abs(temp1), temp2,timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_mday, timeinfo->tm_mon, timeinfo->tm_year - 100);
 
 }
 
@@ -73,7 +74,22 @@ int AnalyseFrame(char *frame)
   }
   return -1;
 }
-
+void SendACKFun(void *ptr)
+{
+  printf("create send ack thread\n");
+  char ackframe[7] = "*00ACK/";
+  while(1)
+  {
+    if(needsendACK == 1)
+    {
+      printf("sending ACK frame....\n");
+      SendFrame(fd, ackframe, 7);
+      needsendACK = 0;
+      show_state();
+    }
+    usleep(100);
+  }
+}
 /* SendThreadFun function is called by send-thread, it is used to *
 *  send messages to the server.                                   * 
 *  if it sends a temperature message, it will set haverecvACK = 0 *
@@ -82,7 +98,7 @@ int AnalyseFrame(char *frame)
 *  until recv-thread receive an ACK message                       */
 void SendThreadFun(void *ptr)
 {
-    printf("start send thread...");
+    printf("start send thread...\n");
     char frame[MAX_FRAME_SIZE];
     char ackframe[7] = "*00ACK/";
     show_state();
@@ -90,18 +106,18 @@ void SendThreadFun(void *ptr)
     while(stop != 1)
     {
       //if sendACK == 1, it means that system has receive a control message, so you should send an ACK, then set sendACK back to 0//
-      if(needsendACK == 1)
-      {
-	printf("send ACK frame....\n");
-        SendFrame(fd, ackframe, 7);
-        needsendACK = 0;
-        show_state();
+      //if(needsendACK == 1)
+      //{
+      //printf("\nsending ACK frame....\n");
+      //SendFrame(fd, ackframe, 7);
+      //needsendACK = 0;
+      //show_state();
 
-      }
+      //}
 
       //get a temp and send //
       GetFrame(frame);
-      printf("sending %s, fre: %d s\n", frame, fre);
+      printf("\nsending %s, fre: %d s\n", frame, fre);
       SendFrame(fd, frame, MAX_FRAME_SIZE);
       
       /*reset haverecvACK to 0, make sure that new frame with new ACK*/
@@ -110,24 +126,28 @@ void SendThreadFun(void *ptr)
       pthread_mutex_unlock(&have_recv_ack_mutex);
       show_state();
       sleep(fre);
+     // usleep(500000);
 
       while(haverecvACK != 1 ) //ACK
       {
-        if(needsendACK == 1)
-        {
-          printf("send ACK frame....\n");
-          SendFrame(fd, ackframe, 7);
-          needsendACK = 0;
-          show_state();
+        //if(needsendACK == 1)
+        //{
+        //  printf("\nsending ACK frame....\n");
+        //  SendFrame(fd, ackframe, 7);
+        //  needsendACK = 0;
+        //  show_state();
 
-        }
+        //}
 
         if(stop == 1) break;   // stop
         printf("no recv ACK, will send again: %s, fre: %d\n", frame, fre);  
         SendFrame(fd, frame, MAX_FRAME_SIZE);
         show_state();
         sleep(fre);
+
+        //usleep(500000);
       }
+
 
     }
 
@@ -142,7 +162,7 @@ void SendThreadFun(void *ptr)
 *  message.                                                         */
 int main()
 {
-  pthread_t sendthread;
+  pthread_t sendthread, sendACKthread;
   char recvframe[MAX_FRAME_SIZE] = "ABCDEFG";
 //  char *device = "/dev/ttyAMA0";
 //  char *device = "/dev/ttyUSB0";
@@ -157,7 +177,8 @@ int main()
   pthread_mutex_init(&need_send_ack_mutex, NULL);
   fd = OpenPort(device);
   if(fd < 0) return -1;
-  pthread_create(&sendthread, NULL, (void *)&SendThreadFun, NULL);
+  pthread_create(&sendthread,    NULL, (void *)&SendThreadFun, NULL);
+  pthread_create(&sendACKthread, NULL, (void *)&SendACKFun,    NULL);
 
   while(stop != 1)
   {
@@ -216,5 +237,6 @@ int main()
     //usleep(500000);
   }
   pthread_join(sendthread, NULL);
+  pthread_join(sendACKthread, NULL);
   return 0;
 }
