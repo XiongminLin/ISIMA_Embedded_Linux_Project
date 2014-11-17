@@ -71,10 +71,10 @@ int InsertToSQL(char *frame)
   	int t, r;
 	char RxChar[21]="*01+21.501330150210/";
   	char InsertSQL[200]= {'\0'};
-	printf("insert sql-1: %s\n", InsertSQL);
+//	printf("insert sql-1: %s\n", InsertSQL);
   	sprintf(InsertSQL, "insert into temperature(start,type,value,hour,date,end) values('*','%s','%s','%s','%s','/')", 
                 type, value, hour, date);
-	printf("insert sql-2: %s\n", InsertSQL);
+//	printf("insert sql-2: %s\n", InsertSQL);
  
   	//link into mysql
   	if(!mysql_real_connect(conn, server, user, password, database, 0, NULL, 0))
@@ -118,7 +118,7 @@ int AnalyseFrame(const char *frame)
 {
   if(frame[2] == '0')      //ACK
   {
-//     printf("hi, recv ACK %s\n", frame);
+     printf("hi, recv ACK %s\n", frame);
      return 0;
 
   }else if(frame[2] == '1') //temp data
@@ -166,7 +166,7 @@ void RecvThreadFun(void *ptr)
            show_state();
            pthread_mutex_unlock(&need_send_ack_mutex);
            InsertToSQL(recvframe);
-           sleep(fre);
+           //sleep(fre);
         }
         else if(datamode == 0)
         {
@@ -208,7 +208,7 @@ void RecvThreadFun(void *ptr)
      else
      {
        printf("recv nothing\n");
-       sleep(1);
+       //sleep(1);
      }
    }
 }
@@ -224,7 +224,7 @@ int main()
   char stopframe[9] = "*03STOP/"; 
 //  char *device = "/dev/ttyAMA0";
 //  char *device = "/dev/ttyUSB0";
-  char *device = "/dev/pts/5";
+  char *device = "/dev/pts/2";
   pthread_mutex_init(&stop_mutex, NULL);
   pthread_mutex_init(&fre_mutex, NULL);
   pthread_mutex_init(&need_send_ack_mutex, NULL);
@@ -286,7 +286,7 @@ int main()
 
     if(stop == 1)
     {
-       printf("sending frequency-message...\n");
+       printf("sending stop-message...\n");
        pthread_mutex_lock(&have_recv_ack_mutex);
        haverecvACK = 0;
        pthread_mutex_unlock(&have_recv_ack_mutex);
@@ -295,11 +295,12 @@ int main()
        SendFrame(fd, stopframe, 8);
        pthread_mutex_unlock(&fd_mutex);
        sleep(1);
+
        while(haverecvACK != 1)
        {
 
          SendFrame(fd, stopframe, 8);
-         printf("no receive ACK, will send frequency-message again...\n");
+         printf("no receive ACK, will send stop-message again...\n");
          show_state();
          sleep(1);
        }
@@ -315,7 +316,7 @@ int main()
        pthread_mutex_lock(&have_recv_ack_mutex);
        haverecvACK = 0;
        pthread_mutex_unlock(&have_recv_ack_mutex);
- 
+
        pthread_mutex_lock(&fre_mutex);
        fre = read_fre;
        sprintf(freframe, "*02%06d/", fre);
@@ -326,9 +327,26 @@ int main()
        
        while(haverecvACK != 1)
        {
+         /*if need send ACK, then send an ACK, and set needsendACK back to 0*/
+         if(needsendACK == 1)
+         {
+           printf("sending ACK...\n");
 
-         SendFrame(fd, freframe, 11);
+           pthread_mutex_lock(&fd_mutex);
+           SendFrame(fd, ackframe, 7);
+           pthread_mutex_unlock(&fd_mutex);
+
+           //tcflush(fd,TCIOFLUSH); //???
+           pthread_mutex_lock(&need_send_ack_mutex);
+           needsendACK = 0;
+           show_state();
+           pthread_mutex_unlock(&need_send_ack_mutex);
+         }
+
          printf("no receive ACK, will send frequency-message again...\n");
+         SendFrame(fd, freframe, 11);
+         show_state();
+
          sleep(1);
        }
     }
@@ -344,7 +362,7 @@ int main()
       SendFrame(fd, ackframe, 7);
       pthread_mutex_unlock(&fd_mutex);
 
-      tcflush(fd,TCIOFLUSH); //???
+      //tcflush(fd,TCIOFLUSH); //???
       pthread_mutex_lock(&need_send_ack_mutex);
       needsendACK = 0;
       show_state();

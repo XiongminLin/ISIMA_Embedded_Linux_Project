@@ -92,8 +92,11 @@ void SendThreadFun(void *ptr)
       //if sendACK == 1, it means that system has receive a control message, so you should send an ACK, then set sendACK back to 0//
       if(needsendACK == 1)
       {
+	printf("send ACK frame....\n");
         SendFrame(fd, ackframe, 7);
         needsendACK = 0;
+        show_state();
+
       }
 
       //get a temp and send //
@@ -110,16 +113,20 @@ void SendThreadFun(void *ptr)
 
       while(haverecvACK != 1 ) //ACK
       {
+        if(needsendACK == 1)
+        {
+          printf("send ACK frame....\n");
+          SendFrame(fd, ackframe, 7);
+          needsendACK = 0;
+          show_state();
+
+        }
+
         if(stop == 1) break;   // stop
         printf("no recv ACK, will send again: %s, fre: %d\n", frame, fre);  
         SendFrame(fd, frame, MAX_FRAME_SIZE);
         show_state();
         sleep(fre);
-        if(needsendACK == 1)
-        {
-          SendFrame(fd, ackframe, 7);
-          needsendACK = 0;
-        }
       }
 
     }
@@ -139,7 +146,7 @@ int main()
   char recvframe[MAX_FRAME_SIZE] = "ABCDEFG";
 //  char *device = "/dev/ttyAMA0";
 //  char *device = "/dev/ttyUSB0";
-  char *device = "/dev/pts/2";
+  char *device = "/dev/pts/4";
   fre  = 1;
   stop = 0;
   haverecvACK = 0;
@@ -158,7 +165,7 @@ int main()
     /*receive a frame and analyse it*/
     RecvFrame(fd, recvframe);
     int recvmode = AnalyseFrame(recvframe);
-                                         
+
     if(recvmode == 0)
     {
        printf("recv: ACK\n");
@@ -206,7 +213,7 @@ int main()
     }
 
     memset(recvframe, '\0', MAX_FRAME_SIZE);
-    usleep(500000);
+    //usleep(500000);
   }
   pthread_join(sendthread, NULL);
   return 0;
